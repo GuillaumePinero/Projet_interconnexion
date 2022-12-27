@@ -1,0 +1,19 @@
+Test de VM avec Ubuntu: OK
+	- essai de plusieurs configurations 
+	- configuration minimale fonctionnelle mais VM n'est pas agréable à utiliser
+
+Choix personnel de WSL 2 +VSCode + Docker: OK --> choix personnel
+	- installation laborieuse de WSL 2 mais rentable
+	- installation de Docker + Docker compose avec VSCode
+
+Familiarisation avec Docker OK
+	- commandes de base
+	- comprendre comment ça fonctionne
+
+Regarder l'automatisation de docker-compose.yml et créer une sauvegarde OK
+	- se familiariser avec la syntaxe
+	- tests basiques pour découvrir et faire fonctionner
+	- réussir à faire ping 2 machines dans un même réseau
+
+Organiser en dossier les éléments du réseau 
+	- comprendre l'utilisation des ports/principe des sockets ( adresse IP + port)
