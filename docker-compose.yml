@@ -7,60 +7,217 @@
 
 version: "3"
 
-services:
+services: #Les machines et routeur
 
-  utilisateur:
-    image: alpine # un linux 
-    container_name: utilisateur # c'est bien de renommer, sinon le nom par défaut est infâme
-    restart: always #sinon ça ferme car il a rien a faire
-    depends_on: #
-      - box_utilisateur #pour DHCP pour attribuer une adresse par exemple
-    networks: 
-      reseau_particulier: # par défaut 192.168.2.2
-    command: sleep 360 # sinon il redémarrera
-
-  box_utilisateur:
+  #########################LES ROUTEURS###############
+  ####################################################
+  Box_utilisateur:
     image: alpine
-    build: ./Element_reseau
-    container_name: box_utilisateur
+    build: ./box_utilisateur
+    container_name: Box_utilisateur
     restart: always
     ports:
       - "67:67" # DHCP
     #configs:
       #- dhcp_config:
     networks:
-      reseau_particulier:
-        ipv4_address: 192.168.2.3
-      reseau_fai_particulier:
-        ipv4_address: 120.0.17.2
+      Reseau_particulier:
+        ipv4_address: 192.168.0.2 #Adresse de la machine dans le réseau particulier
+      RI_prive:
+        ipv4_address: 120.0.18.2
     command: sleep 360 # sinon il redémarrera
 
-  fai_utilisateur:
+  #Les FAIs
+  Fai_acces_utilisateur:
     image: alpine
-    container_name: fai_utilisateur
+    container_name: Fai_utilisateur
     restart: always #sinon ça ferme car il a rien a faire
     networks:
-      reseau_fai_particulier:
-        ipv4_address: 120.0.17.3
-      #reseau_AS:
-        #ipv4_address: 120.0.16.10
+      RI_prive:
+        ipv4_address: 120.0.18.128
+      Reseau_backbone:
+        ipv4_address: 120.0.28.2
     command: sleep 360 # sinon il redémarrera
+  
+  Fai_acces_entreprise:
+    image: alpine
+    container_name: Fai_entreprise
+    restart: always 
+    networks:
+      RI_entreprise:
+        ipv4_address: 120.0.20.128
+      Reseau_backbone:
+        ipv4_address: 120.0.28.3
+    command: sleep 360 
 
-#configs:
+  Fai_acces_autre_AS:
+    image: alpine
+    container_name: Fai_autre_AS
+    restart: always 
+    networks:
+      RI_autre_AS:
+        ipv4_address: 120.0.22.128
+      Reseau_backbone:
+        ipv4_address: 120.0.28.4
+    command: sleep 360 
+
+  Fai_acces_VPN_perso:
+    image: alpine
+    container_name: FAI_VPN_perso
+    restart: always
+    networks:
+      RI_VPN_perso:
+        ipv4_address: 120.0.24.128
+      Reseau_backbone:
+        ipv4_address: 120.0.28.5
+    command: sleep 360 
+
+  Fai_acces_VPN_entreprise:
+    image: alpine
+    container_name: Fai_entreprise
+    restart: always 
+    networks:
+      RI_prive:
+        ipv4_address: 120.0.26.128
+      Reseau_backbone:
+        ipv4_address: 120.0.28.6
+    command: sleep 360 
+
+  #Routeur central
+  Routeur_central:
+    image: alpine
+    container_name: Routeur_central
+    restart: always 
+    networks:
+      Reseau_backbone:
+        ipv4_address: 120.0.28.7
+    command: sleep 360 
+
+ #configs:
   #dhcp_config:
     #file: "./box_utilisateur/dhcpd.conf"
 
+#############LES MACHINES###############################
+########################################################
+
+  #Dans le reseau particulier
+  Ordinateur:
+    image: alpine
+    container_name: Ordinateur
+    restart: always 
+    networks:
+      Reseau_particulier:
+        ipv4_address: 192.168.0.3
+    command: sleep 360 
+  
+  Telephone:
+    image: alpine
+    container_name: Telephone
+    restart: always 
+    networks:
+      Reseau_particulier:
+        ipv4_address: 192.168.0.4
+    command: sleep 360 
+
+  #Dans le réseau de l'entreprise
+  Serveur_entreprise:
+    image: alpine
+    container_name: Serveur_entreprise
+    restart: always 
+    networks:
+      Reseau_entreprise:
+        ipv4_address: 192.168.0.3 #Même adresse que utilisateur car privé
+    command: sleep 360 
+  
+  Serveur_WEB:
+    image: alpine
+    container_name: Serveur_WEB
+    restart: always 
+    networks:
+      Reseau_entreprise:
+        ipv4_address: 192.168.0.4 
+    command: sleep 360 
+
+  Serveur_FTP:
+    image: alpine
+    container_name: Serveur_FTP
+    restart: always 
+    networks:
+      Reseau_entreprise:
+        ipv4_address: 192.168.0.5 
+    command: sleep 360 
+
+  Serveur_DNS:
+    image: alpine
+    container_name: Serveur_DNS
+    restart: always 
+    networks:
+      Reseau_entreprise:
+        ipv4_address: 192.168.0.6 
+    command: sleep 360 
+
+#########################################################################################################
 networks:
 
-  reseau_particulier:
-    ipam:
-      driver: default
+  #Réseau privé
+  Reseau_particulier: #Réseau entre la box et le particulier
+    ipam: #A chercher signification
+      driver: default #Sert de switch/bridge
       config:
-        - subnet: "192.168.2.0/24"
+        - subnet: "192.168.0.0/16" #subnet = sous réseau
 
-  reseau_fai_particulier:
+  #Réseau entreprise
+  Reseau_entreprise: 
+    ipam: 
+      driver: default 
+      config:
+        - subnet: "192.168.0.0/16" #même adresse car réseau privé
+  #A diviser pour mettre en place la DMZ
+
+  #AS
+  AS: 
     ipam:
       driver: default
       config:
-        - subnet: "120.0.17.0/24"
+        - subnet: "120.0.16.0/20"
+  
+  #Backbone
+  Reseau_backbone: #Réseau du routeur backbone
+    ipam:
+      driver: default
+      config:
+        - subnet: "120.0.28.0/23"
+
+  #Réseaux intermédiaires
+  RI_prive: 
+    ipam:
+      driver: default
+      config:
+        - subnet: "120.0.18.0/23"
+      
+  RI_entreprise: 
+    ipam:
+      driver: default
+      config:
+        - subnet: "120.0.20.0/23"
+
+  RI_autre_AS: 
+    ipam:
+      driver: default
+      config:
+        - subnet: "120.0.22.0/23"
+
+  RI_VPN_perso: 
+    ipam:
+      driver: default
+      config:
+        - subnet: "120.0.24.0/23"
+
+  RI_VPN_entreprise: 
+    ipam:
+      driver: default
+      config:
+        - subnet: "120.0.26.0/23"
+
+      
 
