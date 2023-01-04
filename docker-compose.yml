@@ -21,7 +21,7 @@ services:
 
   box_utilisateur:
     image: alpine
-    build: ./Element_reseau
+    build: .
     container_name: box_utilisateur
     restart: always
     ports:
