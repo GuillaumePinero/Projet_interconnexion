@@ -1,0 +1,111 @@
+# CONSIGNES A LIRE POUR MES CHERS COLLEGUES #
+#
+# Ceci est une démo d'un réseau utilisant ospf. Pour l'instant la démo n'est pas terminé,
+# en effet il manque à remplir les fichier dans le répertoire demo1. Les fichiers dans le
+# répertoire demo1 sont des fichiers configurés pour utiliser bgp et non ospf.
+# Il manque donc que j'écrive les scripts pour itiliser ospf. Il se trouve que j"ai 
+# d'autres chats à fouetter alors je continuerai plus tard.
+
+version: "3"
+
+networks:
+
+  reseau1:
+    ipam:
+      driver: default
+      config:
+        - subnet: "192.168.2.0/24"
+        - gateway: 192.168.2.1
+
+  reseau2:
+    ipam:
+      driver: default
+      config:
+        - subnet: "192.168.100.0/24"
+        - gateway: 192.168.100.1
+
+
+#Description du réseau :
+
+# [ R1_2 -- R1_1 ] -- [ R2_1 -- R2_2 ]
+
+
+services:
+
+  routeur1_1:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: routeur1_1 # c'est bien de renommer, sinon le nom par défaut est infâme
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    volumes: #je pense que cela indique où aller chercher des fichiers pour le container
+            - $PWD/demo1/routeur1_1:/etc/frr:rw
+    command: "/bin/bash /etc/frr/start_frr.sh" #initialisation du shell une fois lancé 
+    networks:
+      reseau1:
+        ipv4_address: 192.168.1.2
+      reseau2:
+        ipv4_address: 192.168.100.2
+
+  routeur1_2:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: routeur1_2 # c'est bien de renommer, sinon le nom par défaut est infâme
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    volumes: #je pense que cela indique où aller chercher des fichiers pour le container
+            - $PWD/demo1/routeur1_2:/etc/frr:rw
+    command: "/bin/bash /etc/frr/start_frr.sh" #initialisation du shell une fois lancé 
+    networks:
+      reseau1:
+        ipv4_address: 192.168.1.3
+
+
+    routeur2_1:
+      cap_add:
+        - CAP_NET_RAW
+        - NET_ADMIN
+        - SYS_ADMIN
+      privileged: false
+      image: ksator/frr:1.0 # un linux avec notamment ospf
+      container_name: routeur2_1 # c'est bien de renommer, sinon le nom par défaut est infâme
+      build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+        context: ./
+        dockerfile: Dockerfile
+      volumes: #je pense que cela indique où aller chercher des fichiers pour le container
+              - $PWD/demo1/routeur2_1:/etc/frr:rw
+      command: "/bin/bash /etc/frr/start_frr.sh" #initialisation du shell une fois lancé 
+      networks:
+        reseau1:
+          ipv4_address: 192.168.1.4
+        reseau2:
+          ipv4_address: 192.168.100.3
+
+  routeur2_2:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: routeur2_2 # c'est bien de renommer, sinon le nom par défaut est infâme
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    volumes: #je pense que cela indique où aller chercher des fichiers pour le container
+            - $PWD/demo1/routeur2_2:/etc/frr:rw
+    command: "/bin/bash /etc/frr/start_frr.sh" #initialisation du shell une fois lancé 
+    networks:
+      reseau2:
+        ipv4_address: 192.168.100.4
+
