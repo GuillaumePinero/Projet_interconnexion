@@ -74,10 +74,10 @@ services: #Les machines et routeur
 
   Fai_acces_VPN_entreprise:
     image: alpine
-    container_name: Fai_entreprise
+    container_name: Fai_VPN_entreprise
     restart: always 
     networks:
-      RI_prive:
+      RI_VPN_entreprise:
         ipv4_address: 120.0.26.128
       Reseau_backbone:
         ipv4_address: 120.0.28.6
@@ -108,7 +108,7 @@ services: #Les machines et routeur
     networks:
       Reseau_particulier:
         ipv4_address: 192.168.0.3
-    command: sleep 360 
+    command: sh
   
   Telephone:
     image: alpine
@@ -117,7 +117,7 @@ services: #Les machines et routeur
     networks:
       Reseau_particulier:
         ipv4_address: 192.168.0.4
-    command: sleep 360 
+    command: sh
 
   #Dans le réseau de l'entreprise
   Serveur_entreprise:
@@ -126,7 +126,7 @@ services: #Les machines et routeur
     restart: always 
     networks:
       Reseau_entreprise:
-        ipv4_address: 192.168.0.3 #Même adresse que utilisateur car privé
+        ipv4_address: 196.168.0.3 #Même adresse que utilisateur car privé
     command: sleep 360 
   
   Serveur_WEB:
@@ -135,7 +135,7 @@ services: #Les machines et routeur
     restart: always 
     networks:
       Reseau_entreprise:
-        ipv4_address: 192.168.0.4 
+        ipv4_address: 196.168.0.4 
     command: sleep 360 
 
   Serveur_FTP:
@@ -144,7 +144,7 @@ services: #Les machines et routeur
     restart: always 
     networks:
       Reseau_entreprise:
-        ipv4_address: 192.168.0.5 
+        ipv4_address: 196.168.0.5 
     command: sleep 360 
 
   Serveur_DNS:
@@ -153,7 +153,7 @@ services: #Les machines et routeur
     restart: always 
     networks:
       Reseau_entreprise:
-        ipv4_address: 192.168.0.6 
+        ipv4_address: 196.168.0.6 
     command: sleep 360 
 
 #########################################################################################################
@@ -171,7 +171,7 @@ networks:
     ipam: 
       driver: default 
       config:
-        - subnet: "192.168.0.0/16" #même adresse car réseau privé
+        - subnet: "196.168.0.0/16" #même adresse car réseau privé /!\ON A CHANGE ADRESSE CAR DOCKER PAS CONTENT
   #A diviser pour mettre en place la DMZ
 
   #AS
