@@ -1,111 +1,282 @@
 # CONSIGNES A LIRE POUR MES CHERS COLLEGUES #
 #
-# Ceci est une démo d'un réseau utilisant ospf. Pour l'instant la démo n'est pas terminé,
-# en effet il manque à remplir les fichier dans le répertoire demo1. Les fichiers dans le
-# répertoire demo1 sont des fichiers configurés pour utiliser bgp et non ospf.
-# Il manque donc que j'écrive les scripts pour itiliser ospf. Il se trouve que j"ai 
-# d'autres chats à fouetter alors je continuerai plus tard.
+# L'architecture est fidèle au schéma qui a été fait lors de notre première réu.
+# En reprenant les éléments sur le schéma, les conténaires se ping sur les ports voisins d'un même réseau.
+# Un git sera là avec un dossier pour chaque élément afin de faire les configurations et se les partager
+# Afin de partager nos avancées, nous ferons un git, chaque élément du réseau aura son dossier
 
 version: "3"
 
+services: #Les machines et routeur
+
+  #########################LES ROUTEURS###############
+  ####################################################
+  Box_utilisateur:
+    image: alpine
+    build: ./box_utilisateur
+    container_name: Box_utilisateur
+    restart: always
+    ports:
+      - "67:67" # DHCP
+    #configs:
+      #- dhcp_config:
+    networks:
+      Reseau_particulier:
+        ipv4_address: 192.168.1.2 #Adresse de la machine dans le réseau particulier
+      RI_prive:
+        ipv4_address: 120.0.18.2
+    command: sleep 360 # sinon il redémarrera
+
+  #Les FAIs
+  Fai_acces_utilisateur:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: Fai_utilisateur
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    volumes: #cela indique où aller chercher des fichiers pour le container et où les mettre dans le container
+            - $PWD/demo1/Fai_utilisateur:/etc/frr:rw
+    command: "/bin/bash /etc/frr/start_frr.sh" #initialisation du shell une fois lancé 
+    networks:
+      RI_prive:
+        ipv4_address: 120.0.18.128
+      Reseau_backbone:
+        ipv4_address: 120.0.28.2
+  
+  Fai_acces_entreprise:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: Fai_entreprise # c'est bien de renommer, sinon le nom par défaut est infâme
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    volumes: #cela indique où aller chercher des fichiers pour le container et où les mettre dans le container
+            - $PWD/demo1/Fai_entreprise:/etc/frr:rw
+    command: "/bin/bash /etc/frr/start_frr.sh" #initialisation du shell une fois lancé 
+    networks:
+      RI_entreprise:
+        ipv4_address: 120.0.20.128
+      Reseau_backbone:
+        ipv4_address: 120.0.28.3
+
+  Fai_acces_autre_AS:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: Fai_autre_AS # c'est bien de renommer, sinon le nom par défaut est infâme
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    volumes: #cela indique où aller chercher des fichiers pour le container et où les mettre dans le container
+            - $PWD/demo1/Fai_autre_AS:/etc/frr:rw
+    command: "/bin/bash /etc/frr/start_frr.sh" #initialisation du shell une fois lancé 
+    networks:
+      RI_autre_AS:
+        ipv4_address: 120.0.22.128
+      Reseau_backbone:
+        ipv4_address: 120.0.28.4
+
+  Fai_acces_VPN_perso:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: FAI_VPN_perso # c'est bien de renommer, sinon le nom par défaut est infâme
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    volumes: #cela indique où aller chercher des fichiers pour le container et où les mettre dans le container
+            - $PWD/demo1/FAI_VPN_perso:/etc/frr:rw
+    command: "/bin/bash /etc/frr/start_frr.sh" #initialisation du shell une fois lancé 
+    networks:
+      RI_VPN_perso:
+        ipv4_address: 120.0.24.128
+      Reseau_backbone:
+        ipv4_address: 120.0.28.5
+
+  Fai_acces_VPN_entreprise:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: FAI_VPN_entreprise # c'est bien de renommer, sinon le nom par défaut est infâme
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    volumes: #cela indique où aller chercher des fichiers pour le container et où les mettre dans le container
+            - $PWD/demo1/FAI_VPN_entreprise:/etc/frr:rw
+    command: "/bin/bash /etc/frr/start_frr.sh" #initialisation du shell une fois lancé 
+    networks:
+      RI_VPN_entreprise:
+        ipv4_address: 120.0.26.128
+      Reseau_backbone:
+        ipv4_address: 120.0.28.6
+
+  #Routeur central
+  Routeur_central:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: routeur_central # c'est bien de renommer, sinon le nom par défaut est infâme
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    volumes: #cela indique où aller chercher des fichiers pour le container et où les mettre dans le container
+            - $PWD/demo1/routeur_central:/etc/frr:rw
+    command: "/bin/bash /etc/frr/start_frr.sh" #initialisation du shell une fois lancé 
+    networks:
+      Reseau_backbone:
+        ipv4_address: 120.0.28.7
+
+ #configs:
+  #dhcp_config:
+    #file: "./box_utilisateur/dhcpd.conf"
+
+#############LES MACHINES###############################
+########################################################
+
+  #Dans le reseau particulier
+  Ordinateur:
+    image: alpine
+    container_name: Ordinateur
+    restart: always 
+    networks:
+      Reseau_particulier:
+        ipv4_address: 192.168.1.3
+    command: sh
+  
+  Telephone:
+    image: alpine
+    container_name: Telephone
+    restart: always 
+    networks:
+      Reseau_particulier:
+        ipv4_address: 192.168.1.4
+    command: sh
+
+  #Dans le réseau de l'entreprise
+  Serveur_entreprise:
+    image: alpine
+    container_name: Serveur_entreprise
+    restart: always 
+    networks:
+      Reseau_entreprise:
+        ipv4_address: 196.168.2.3 #Même adresse que utilisateur car privé
+    command: sleep 360 
+  
+  Serveur_WEB:
+    image: alpine
+    container_name: Serveur_WEB
+    restart: always 
+    networks:
+      Reseau_entreprise:
+        ipv4_address: 196.168.2.4 
+    command: sleep 360 
+
+  Serveur_FTP:
+    image: alpine
+    container_name: Serveur_FTP
+    restart: always 
+    networks:
+      Reseau_entreprise:
+        ipv4_address: 196.168.2.5 
+    command: sleep 360 
+
+  Serveur_DNS:
+    image: alpine
+    container_name: Serveur_DNS
+    restart: always 
+    networks:
+      Reseau_entreprise:
+        ipv4_address: 196.168.2.6 
+    command: sleep 360 
+
+#########################################################################################################
 networks:
 
-  reseau1:
+  #Réseau privé
+  Reseau_particulier: #Réseau entre la box et le particulier
+    ipam: #A chercher signification
+      driver: default #Sert de switch/bridge
+      config:
+        - subnet: "192.168.1.0/24" #subnet = sous réseau
+
+  #Réseau entreprise
+  Reseau_entreprise: 
+    ipam: 
+      driver: default 
+      config:
+        - subnet: "196.168.2.0/24" #même adresse car réseau privé /!\ON A CHANGE ADRESSE CAR DOCKER PAS CONTENT
+  #A diviser pour mettre en place la DMZ
+
+  #AS
+  AS: 
     ipam:
       driver: default
       config:
-        - subnet: "192.168.2.0/24"
-        - gateway: 192.168.2.1
-
-  reseau2:
+        - subnet: "120.0.16.0/20"
+  
+  #Backbone
+  Reseau_backbone: #Réseau du routeur backbone
     ipam:
       driver: default
       config:
-        - subnet: "192.168.100.0/24"
-        - gateway: 192.168.100.1
+        - subnet: 120.0.28.0/23
+          gateway: 120.0.28.1
 
+  #Réseaux intermédiaires
+  RI_prive: 
+    ipam:
+      driver: default
+      config:
+        - subnet: 120.0.18.0/23
+          gateway: 120.0.18.1
+      
+  RI_entreprise: 
+    ipam:
+      driver: default
+      config:
+        - subnet: 120.0.20.0/23
+          gateway: 120.0.20.1
 
-#Description du réseau :
+  RI_autre_AS: 
+    ipam:
+      driver: default
+      config:
+        - subnet: 120.0.22.0/23
+          gateway: 120.0.22.1
 
-# [ R1_2 -- R1_1 ] -- [ R2_1 -- R2_2 ]
+  RI_VPN_perso: 
+    ipam:
+      driver: default
+      config:
+        - subnet: 120.0.24.0/23
+          gateway: 120.0.24.1
 
+  RI_VPN_entreprise: 
+    ipam:
+      driver: default
+      config:
+        - subnet: 120.0.26.0/23
+          gateway: 120.0.26.1
 
-services:
-
-  routeur1_1:
-    cap_add:
-      - CAP_NET_RAW
-      - NET_ADMIN
-      - SYS_ADMIN
-    privileged: false
-    image: ksator/frr:1.0 # un linux avec notamment ospf
-    container_name: routeur1_1 # c'est bien de renommer, sinon le nom par défaut est infâme
-    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
-      context: ./
-      dockerfile: Dockerfile
-    volumes: #je pense que cela indique où aller chercher des fichiers pour le container
-            - $PWD/demo1/routeur1_1:/etc/frr:rw
-    command: "/bin/bash /etc/frr/start_frr.sh" #initialisation du shell une fois lancé 
-    networks:
-      reseau1:
-        ipv4_address: 192.168.1.2
-      reseau2:
-        ipv4_address: 192.168.100.2
-
-  routeur1_2:
-    cap_add:
-      - CAP_NET_RAW
-      - NET_ADMIN
-      - SYS_ADMIN
-    privileged: false
-    image: ksator/frr:1.0 # un linux avec notamment ospf
-    container_name: routeur1_2 # c'est bien de renommer, sinon le nom par défaut est infâme
-    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
-      context: ./
-      dockerfile: Dockerfile
-    volumes: #je pense que cela indique où aller chercher des fichiers pour le container
-            - $PWD/demo1/routeur1_2:/etc/frr:rw
-    command: "/bin/bash /etc/frr/start_frr.sh" #initialisation du shell une fois lancé 
-    networks:
-      reseau1:
-        ipv4_address: 192.168.1.3
-
-
-    routeur2_1:
-      cap_add:
-        - CAP_NET_RAW
-        - NET_ADMIN
-        - SYS_ADMIN
-      privileged: false
-      image: ksator/frr:1.0 # un linux avec notamment ospf
-      container_name: routeur2_1 # c'est bien de renommer, sinon le nom par défaut est infâme
-      build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
-        context: ./
-        dockerfile: Dockerfile
-      volumes: #je pense que cela indique où aller chercher des fichiers pour le container
-              - $PWD/demo1/routeur2_1:/etc/frr:rw
-      command: "/bin/bash /etc/frr/start_frr.sh" #initialisation du shell une fois lancé 
-      networks:
-        reseau1:
-          ipv4_address: 192.168.1.4
-        reseau2:
-          ipv4_address: 192.168.100.3
-
-  routeur2_2:
-    cap_add:
-      - CAP_NET_RAW
-      - NET_ADMIN
-      - SYS_ADMIN
-    privileged: false
-    image: ksator/frr:1.0 # un linux avec notamment ospf
-    container_name: routeur2_2 # c'est bien de renommer, sinon le nom par défaut est infâme
-    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
-      context: ./
-      dockerfile: Dockerfile
-    volumes: #je pense que cela indique où aller chercher des fichiers pour le container
-            - $PWD/demo1/routeur2_2:/etc/frr:rw
-    command: "/bin/bash /etc/frr/start_frr.sh" #initialisation du shell une fois lancé 
-    networks:
-      reseau2:
-        ipv4_address: 192.168.100.4
-
+      
