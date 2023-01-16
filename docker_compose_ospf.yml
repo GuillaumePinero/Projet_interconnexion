@@ -11,21 +11,50 @@ services: #Les machines et routeur
 
   #########################LES ROUTEURS###############
   ####################################################
-  Box_utilisateur:
-    image: alpine
-    build: ./box_utilisateur
-    container_name: Box_utilisateur
-    restart: always
-    ports:
-      - "67:67" # DHCP
-    #configs:
-      #- dhcp_config:
+
+  box_part:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: box_part
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
     networks:
       Reseau_particulier:
-        ipv4_address: 192.168.1.2 #Adresse de la machine dans le réseau particulier
+        ipv4_address: 192.168.1.100
       RI_prive:
         ipv4_address: 120.0.18.2
-    command: sleep 360 # sinon il redémarrera
+    volumes:
+    - $PWD/demo1/dhcp_part/dhcpd.conf:/dhcpd.conf
+    - $PWD/demo1/dhcp_part/start_dhcp.sh:/start_dhcp.sh
+    command: "/bin/bash /start_dhcp.sh"
+    
+
+  box_entreprise:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: box_entreprise
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    networks:
+      Reseau_entreprise:
+        ipv4_address: 192.168.2.100
+      RI_entreprise:
+        ipv4_address: 120.0.20.2
+    volumes:
+    - $PWD/demo1/dhcp_entreprise/dhcpd.conf:/dhcpd.conf
+    - $PWD/demo1/dhcp_entreprise/start_dhcp.sh:/start_dhcp.sh
+    command: "/bin/bash /start_dhcp.sh"
+    
 
   #Les FAIs
   Fai_acces_utilisateur:
@@ -156,22 +185,40 @@ services: #Les machines et routeur
 
   #Dans le reseau particulier
   Ordinateur:
-    image: alpine
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
     container_name: Ordinateur
     restart: always 
+    volumes:
+      - $PWD/demo1/ordi/start_ordi.sh:/start_ordi.sh
     networks:
       Reseau_particulier:
-        ipv4_address: 192.168.1.3
-    command: sh
+    command: /bin/bash start_ordi.sh
   
   Telephone:
-    image: alpine
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
     container_name: Telephone
     restart: always 
+    volumes:
+      - $PWD/demo1/telephone/start_tel.sh:/start_tel.sh
     networks:
       Reseau_particulier:
-        ipv4_address: 192.168.1.4
-    command: sh
+    command: /bin/bash start_tel.sh
 
   #Dans le réseau de l'entreprise
   Serveur_entreprise:
@@ -180,7 +227,6 @@ services: #Les machines et routeur
     restart: always 
     networks:
       Reseau_entreprise:
-        ipv4_address: 196.168.2.3 #Même adresse que utilisateur car privé
     command: sleep 360 
   
   Serveur_WEB:
@@ -189,7 +235,6 @@ services: #Les machines et routeur
     restart: always 
     networks:
       Reseau_entreprise:
-        ipv4_address: 196.168.2.4 
     command: sleep 360 
 
   Serveur_FTP:
@@ -198,7 +243,6 @@ services: #Les machines et routeur
     restart: always 
     networks:
       Reseau_entreprise:
-        ipv4_address: 196.168.2.5 
     command: sleep 360 
 
   Serveur_DNS:
@@ -207,7 +251,6 @@ services: #Les machines et routeur
     restart: always 
     networks:
       Reseau_entreprise:
-        ipv4_address: 196.168.2.6 
     command: sleep 360 
 
 #########################################################################################################
@@ -225,7 +268,7 @@ networks:
     ipam: 
       driver: default 
       config:
-        - subnet: "196.168.2.0/24" #même adresse car réseau privé /!\ON A CHANGE ADRESSE CAR DOCKER PAS CONTENT
+        - subnet: "192.168.2.0/24" #même adresse car réseau privé /!\ON A CHANGE ADRESSE CAR DOCKER PAS CONTENT
   #A diviser pour mettre en place la DMZ
 
   #AS
