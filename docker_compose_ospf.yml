@@ -46,10 +46,12 @@ services: #Les machines et routeur
       context: ./
       dockerfile: Dockerfile
     networks:
-      Reseau_entreprise:
-        ipv4_address: 192.168.2.100
-      RI_entreprise:
-        ipv4_address: 120.0.20.2
+      RI_Sans_DMZ: #eth0
+        ipv4_address: 192.168.2.145
+      RI_DMZ: #eth1
+        ipv4_address: 192.168.2.75
+      RI_entreprise: #eth2
+        ipv4_address: 120.0.20.2 
     volumes:
     - $PWD/demo1/dhcp_entreprise/dhcpd.conf:/dhcpd.conf
     - $PWD/demo1/dhcp_entreprise/start_dhcp.sh:/start_dhcp.sh
@@ -176,6 +178,7 @@ services: #Les machines et routeur
       Reseau_backbone:
         ipv4_address: 120.0.28.7
 
+
  #configs:
   #dhcp_config:
     #file: "./box_utilisateur/dhcpd.conf"
@@ -226,7 +229,7 @@ services: #Les machines et routeur
     container_name: Serveur_entreprise
     restart: always 
     networks:
-      Reseau_entreprise:
+      RI_DMZ:
     command: sleep 360 
   
   Serveur_WEB:
@@ -234,7 +237,7 @@ services: #Les machines et routeur
     container_name: Serveur_WEB
     restart: always 
     networks:
-      Reseau_entreprise:
+      RI_DMZ:
     command: sleep 360 
 
   Serveur_FTP:
@@ -242,7 +245,7 @@ services: #Les machines et routeur
     container_name: Serveur_FTP
     restart: always 
     networks:
-      Reseau_entreprise:
+      RI_DMZ:
     command: sleep 360 
 
   Serveur_DNS:
@@ -250,7 +253,7 @@ services: #Les machines et routeur
     container_name: Serveur_DNS
     restart: always 
     networks:
-      Reseau_entreprise:
+      RI_DMZ:
     command: sleep 360 
 
 #########################################################################################################
@@ -263,21 +266,6 @@ networks:
       config:
         - subnet: "192.168.1.0/24" #subnet = sous réseau
 
-  #Réseau entreprise
-  Reseau_entreprise: 
-    ipam: 
-      driver: default 
-      config:
-        - subnet: "192.168.2.0/24" #même adresse car réseau privé /!\ON A CHANGE ADRESSE CAR DOCKER PAS CONTENT
-  #A diviser pour mettre en place la DMZ
-
-  #AS
-  AS: 
-    ipam:
-      driver: default
-      config:
-        - subnet: "120.0.16.0/20"
-  
   #Backbone
   Reseau_backbone: #Réseau du routeur backbone
     ipam:
@@ -321,5 +309,22 @@ networks:
       config:
         - subnet: 120.0.26.0/23
           gateway: 120.0.26.1
+
+  RI_Sans_DMZ:
+    ipam:
+      driver: default
+      config:
+      - subnet: 192.168.2.128/26
+        gateway: 192.168.2.129
+
+  RI_DMZ:
+    ipam:
+      driver: default
+      config:
+      - subnet: 192.168.2.64/26
+        gateway: 192.168.2.65
+
+
+
 
       
