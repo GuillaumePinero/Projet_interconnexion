@@ -31,6 +31,7 @@ services: #Les machines et routeur
     volumes:
     - $PWD/demo1/dhcp_part/dhcpd.conf:/dhcpd.conf
     - $PWD/demo1/dhcp_part/start_dhcp.sh:/start_dhcp.sh
+    - $PWD/demo1/dhcp_part:/etc/frr:rw
     command: "/bin/bash /start_dhcp.sh"
     
 
@@ -55,6 +56,29 @@ services: #Les machines et routeur
     volumes:
     - $PWD/demo1/dhcp_entreprise/dhcpd.conf:/dhcpd.conf
     - $PWD/demo1/dhcp_entreprise/start_dhcp.sh:/start_dhcp.sh
+    - $PWD/demo1/dhcp_entreprise:/etc/frr:rw
+    command: "/bin/bash /start_dhcp.sh"
+
+  box_filiale:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: box_filiale
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    networks:
+      RI_filiale: #eth0
+        ipv4_address: 192.168.2.194
+      RI_VPN_entreprise:
+        ipv4_address: 120.0.26.2
+    volumes:
+    - $PWD/demo1/dhcp_filiale/dhcpd.conf:/dhcpd.conf
+    - $PWD/demo1/dhcp_filiale/start_dhcp.sh:/start_dhcp.sh
+    - $PWD/demo1/dhcp_filiale:/etc/frr:rw
     command: "/bin/bash /start_dhcp.sh"
     
 
@@ -224,16 +248,54 @@ services: #Les machines et routeur
     command: /bin/bash start_tel.sh
 
   #Dans le réseau de l'entreprise
-  Serveur_entreprise:
-    image: alpine
-    container_name: Serveur_entreprise
+  ordi_entreprise:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    container_name: ordi_entreprise
     restart: always 
     networks:
       RI_DMZ:
+        ipv4_address: 192.168.2.71
+    volumes:
+      - $PWD/demo1/ordi_entreprise/start_tel.sh:/start_tel.sh
+    command: sleep 360 
+  
+  ordi_filiale:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    container_name: ordi_filiale
+    restart: always 
+    networks:
+      RI_filiale:
+        ipv4_address: 192.168.2.195
+    volumes:
+      - $PWD/demo1/ordi_filiale/start_tel.sh:/start_tel.sh
     command: sleep 360 
   
   Serveur_WEB:
-    image: alpine
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
     container_name: Serveur_WEB
     restart: always 
     networks:
@@ -249,12 +311,19 @@ services: #Les machines et routeur
     command: sleep 360 
 
   Serveur_DNS:
-    image: alpine
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
     container_name: Serveur_DNS
-    restart: always 
     networks:
       RI_DMZ:
-    command: sleep 360 
+    command: sleep infinity
 
 #########################################################################################################
 networks:
@@ -324,6 +393,12 @@ networks:
       - subnet: 192.168.2.64/26
         gateway: 192.168.2.65
 
+  RI_filiale:
+    ipam:
+      driver: default
+      config:
+      - subnet: 192.168.2.192/26
+        gateway: 192.168.2.193
 
 
 
