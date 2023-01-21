@@ -1,0 +1,50 @@
+apt update
+apt install apache2 -y
+
+#Faire 8 puis 37
+
+sudo vim /etc/apache2/apache2.conf
+#Ajouter <ServerName 192.168.2.3> à la fin du fichier sans les <> et en remplaçant @IP par @IP du containeur web!
+apachectl configtest #Pour vérifier la syntaxe
+
+service apache2 start
+
+sudo mkdir /var/www/your_domain
+vim /var/www/your_domain/index.html
+
+#Ecrire dans le fichier ce qui suit 
+
+<html>
+    <head>
+        <title>Welcome to SiteTropCool!</title>
+    </head>
+    <body>
+        <h1>Success!  The SiteTropCool virtual host is working!</h1>
+    </body>
+</html>
+
+
+#Faire
+vim /etc/apache2/sites-available/your_domain.conf
+
+#Ecrire dans le fichier ce qui suit 
+
+NameVirtualHost 192.168.2.3
+<VirtualHost 192.168.2.3:80>
+    ServerAdmin webmaster@localhost
+    ServerName your_domain
+    ServerAlias your_domain
+    DocumentRoot /var/www/your_domain
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+
+#Faire
+
+service apache2 reload
+a2ensite your_domain.conf
+service apache2 reload
+
+#Pour vérifier que le serveur web fonctionne FAIRE (depuis container ordinateur par exemple )
+wget http://@IPServeurWeb #remplacer @IPServeurWeb par son adresse ip...
+cat index.html # Pour afficher le site trop cool ;)
