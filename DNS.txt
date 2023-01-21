@@ -1,0 +1,36 @@
+Dans un terminal d'une image frrouting :
+
+apt-get install -y bind9    #install bind9
+8 #Europe
+37 #Paris
+vim /etc/bind/db.mysite.lan #cf 1
+vim /etc/bind/named.conf.local #cf 2
+named-checkzone mysite.lan /etc/bind/db.mysite.lan #pas obligé  
+service named start #start le dns
+
+
+Sur un autre équipement ou sur le serveur (avec image ffrouting)
+apt-get install dnsutils #pour dig
+dig mysite.lan #requete
+
+
+1 : copier dans /etc/bind/db.mysite.lan :
+
+$TTL    604800
+@       IN      SOA     ns.mysite.lan. root.mysite.lan. (
+                        2           ; Serial
+                        604800      ; Refresh
+                        86400       ; Retry
+                        2419200     ; Expire
+                        604800 )    ; Negative Cache TTL
+;
+@       IN      NS      ns.mysite.lan.
+ns      IN      A       192.168.1.10
+www     IN      A       192.168.1.100
+
+2 : copier dans /etc/bind/named.conf.local :
+
+zone "mysite.lan" {
+	type master;
+	file "/etc/bind/db.mysite.lan";
+};
