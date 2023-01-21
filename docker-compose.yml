@@ -9,18 +9,18 @@ version: "3"
 
 services:
 
-  utilisateur:
+  Ordinateur:
     image: ksator/frr:1.0 # un linux 
     build: 
       context: ./
       dockerfile: Dockerfile
-    container_name: utilisateur # c'est bien de renommer, sinon le nom par défaut est infâme
+    container_name: Ordinateur # c'est bien de renommer, sinon le nom par défaut est infâme
     networks: 
       reseau_particulier:
-        ipv4_address: 192.168.2.2 
+        ipv4_address: 192.168.2.195
     command: sleep infinity # sinon il redémarrera
 
-  web:
+  Serveur_WEB:
     cap_add:
       - CAP_NET_RAW
       - NET_ADMIN
@@ -30,13 +30,13 @@ services:
     build: 
       context: ./
       dockerfile: Dockerfile
-    container_name: web
+    container_name: Serveur_WEB
     networks:
       reseau_particulier:
         ipv4_address: 192.168.2.3
     command: sleep infinity # sinon il redémarrera
 
-  DNS:
+  Serveur_DNS:
     cap_add:
       - CAP_NET_RAW
       - NET_ADMIN
@@ -46,7 +46,7 @@ services:
     build: 
       context: ./
       dockerfile: Dockerfile
-    container_name: DNS
+    container_name: Serveur_DNS
     networks:
       reseau_particulier:
         ipv4_address: 192.168.2.4
