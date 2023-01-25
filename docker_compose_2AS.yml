@@ -1,0 +1,813 @@
+# CONSIGNES A LIRE POUR MES CHERS COLLEGUES #
+#
+# L'architecture est fidèle au schéma qui a été fait lors de notre première réu.
+# En reprenant les éléments sur le schéma, les conténaires se ping sur les ports voisins d'un même réseau.
+# Un git sera là avec un dossier pour chaque élément afin de faire les configurations et se les partager
+# Afin de partager nos avancées, nous ferons un git, chaque élément du réseau aura son dossier
+
+version: "3"
+
+services: #Les machines et routeur
+
+  #########################AS 1###############
+  ####################################################
+
+  box_part:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: box_part
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    networks:
+      Reseau_particulier:
+        ipv4_address: 192.168.1.100
+      RI_prive:
+        ipv4_address: 120.0.18.2
+    volumes:
+    - $PWD/demo1/dhcp_part/dhcpd.conf:/dhcpd.conf
+    - $PWD/demo1/dhcp_part/start_dhcp.sh:/start_dhcp.sh
+    - $PWD/demo1/dhcp_part:/etc/frr:rw
+    command: "/bin/bash /start_dhcp.sh"
+    
+
+  box_entreprise:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: box_entreprise
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    networks:
+      RI_Sans_DMZ: #eth0
+        ipv4_address: 192.168.2.145
+      RI_DMZ: #eth1
+        ipv4_address: 192.168.2.75
+      RI_entreprise: #eth2
+        ipv4_address: 120.0.20.2 
+    volumes:
+    - $PWD/demo1/dhcp_entreprise/dhcpd.conf:/dhcpd.conf
+    - $PWD/demo1/dhcp_entreprise/start_dhcp.sh:/start_dhcp.sh
+    - $PWD/demo1/dhcp_entreprise:/etc/frr:rw
+    command: "/bin/bash /start_dhcp.sh"
+
+  box_filiale:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: box_filiale
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    networks:
+      RI_filiale: #eth0
+        ipv4_address: 192.168.2.194
+      RI_VPN_entreprise:
+        ipv4_address: 120.0.26.2
+    volumes:
+    - $PWD/demo1/dhcp_filiale/dhcpd.conf:/dhcpd.conf
+    - $PWD/demo1/dhcp_filiale/start_dhcp.sh:/start_dhcp.sh
+    - $PWD/demo1/dhcp_filiale:/etc/frr:rw
+    command: "/bin/bash /start_dhcp.sh"
+    
+
+  #Les FAIs
+  Fai_acces_utilisateur:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: Fai_utilisateur
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    volumes: #cela indique où aller chercher des fichiers pour le container et où les mettre dans le container
+            - $PWD/demo1/Fai_utilisateur:/etc/frr:rw
+    command: "/bin/bash /etc/frr/start_frr.sh" #initialisation du shell une fois lancé 
+    networks:
+      RI_prive:
+        ipv4_address: 120.0.18.128
+      Reseau_backbone:
+        ipv4_address: 120.0.28.2
+  
+  Fai_acces_entreprise:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: Fai_entreprise # c'est bien de renommer, sinon le nom par défaut est infâme
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    volumes: #cela indique où aller chercher des fichiers pour le container et où les mettre dans le container
+            - $PWD/demo1/Fai_entreprise:/etc/frr:rw
+    command: "/bin/bash /etc/frr/start_frr.sh" #initialisation du shell une fois lancé 
+    networks:
+      RI_entreprise:
+        ipv4_address: 120.0.20.128
+      Reseau_backbone:
+        ipv4_address: 120.0.28.3
+
+  Fai_acces_autre_AS:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: Fai_autre_AS # c'est bien de renommer, sinon le nom par défaut est infâme
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    volumes: #cela indique où aller chercher des fichiers pour le container et où les mettre dans le container
+            - $PWD/demo1/Fai_autre_AS:/etc/frr:rw
+    command: "/bin/bash /etc/frr/start_frr.sh" #initialisation du shell une fois lancé 
+    networks:
+      RI_autre_AS:
+        ipv4_address: 120.0.22.128
+      Reseau_backbone:
+        ipv4_address: 120.0.28.4
+      Reseau_interco:
+        ipv4_address: 10.0.0.4
+
+  Fai_acces_VPN_perso:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: FAI_VPN_perso # c'est bien de renommer, sinon le nom par défaut est infâme
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    volumes: #cela indique où aller chercher des fichiers pour le container et où les mettre dans le container
+            - $PWD/demo1/FAI_VPN_perso:/etc/frr:rw
+    command: "/bin/bash /etc/frr/start_frr.sh" #initialisation du shell une fois lancé 
+    networks:
+      RI_VPN_perso:
+        ipv4_address: 120.0.24.128
+      Reseau_backbone:
+        ipv4_address: 120.0.28.5
+
+  Fai_acces_VPN_entreprise:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: FAI_VPN_entreprise # c'est bien de renommer, sinon le nom par défaut est infâme
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    volumes: #cela indique où aller chercher des fichiers pour le container et où les mettre dans le container
+            - $PWD/demo1/FAI_VPN_entreprise:/etc/frr:rw
+    command: "/bin/bash /etc/frr/start_frr.sh" #initialisation du shell une fois lancé 
+    networks:
+      RI_VPN_entreprise:
+        ipv4_address: 120.0.26.128
+      Reseau_backbone:
+        ipv4_address: 120.0.28.6
+
+  #Routeur central
+  Routeur_central:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: routeur_central # c'est bien de renommer, sinon le nom par défaut est infâme
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    volumes: #cela indique où aller chercher des fichiers pour le container et où les mettre dans le container
+            - $PWD/demo1/routeur_central:/etc/frr:rw
+    command: "/bin/bash /etc/frr/start_frr.sh" #initialisation du shell une fois lancé 
+    networks:
+      Reseau_backbone:
+        ipv4_address: 120.0.28.7
+
+  
+ #configs:
+  #dhcp_config:
+    #file: "./box_utilisateur/dhcpd.conf"
+
+#############LES MACHINES###############################
+########################################################
+
+
+  #Dans le reseau particulier
+  Ordinateur:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    container_name: Ordinateur
+    restart: always 
+    volumes:
+      - $PWD/demo1/ordi/start_ordi.sh:/start_ordi.sh
+    networks:
+      Reseau_particulier:
+    command: /bin/bash start_ordi.sh
+  
+  Telephone:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    container_name: Telephone
+    restart: always 
+    volumes:
+      - $PWD/demo1/telephone/start_tel.sh:/start_tel.sh
+    networks:
+      Reseau_particulier:
+    command: /bin/bash start_tel.sh
+
+  #Dans le réseau de l'entreprise
+  ordi_entreprise:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    container_name: ordi_entreprise
+    restart: always 
+    networks:
+      RI_DMZ:
+        ipv4_address: 192.168.2.71
+    volumes:
+      - $PWD/demo1/ordi_entreprise/start_tel.sh:/start_tel.sh
+    command: sleep 360 
+  
+  ordi_filiale:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    container_name: ordi_filiale
+    restart: always 
+    networks:
+      RI_filiale:
+        ipv4_address: 192.168.2.195
+    volumes:
+      - $PWD/demo1/ordi_filiale/start_tel.sh:/start_tel.sh
+    command: sleep 360 
+  
+  Serveur_WEB:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    container_name: Serveur_WEB
+    restart: always 
+    networks:
+      RI_DMZ:
+    command: sleep 360 
+
+  Serveur_FTP:
+    image: alpine
+    container_name: Serveur_FTP
+    restart: always 
+    networks:
+      RI_DMZ:
+    command: sleep 360 
+
+  Serveur_DNS:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    container_name: Serveur_DNS
+    networks:
+      RI_DMZ:
+    command: sleep infinity
+
+    #############AS 2###############################
+########################################################
+
+  box_part2:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: box_part2
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    networks:
+      Reseau_particulier2:
+        ipv4_address: 192.168.3.100
+      RI2_prive:
+        ipv4_address: 120.1.18.2
+    volumes:
+    - $PWD/demo2/dhcp_part/dhcpd.conf:/dhcpd.conf
+    - $PWD/demo2/dhcp_part/start_dhcp.sh:/start_dhcp.sh
+    - $PWD/demo2/dhcp_part:/etc/frr:rw
+    command: "/bin/bash /start_dhcp.sh"
+    
+
+  box_entreprise2:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: box_entreprise2
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    networks:
+      RI2_Sans_DMZ: #eth0
+        ipv4_address: 192.168.4.145
+      RI2_DMZ: #eth1
+        ipv4_address: 192.168.4.75
+      RI2_entreprise: #eth2
+        ipv4_address: 120.1.20.2 
+    volumes:
+    - $PWD/demo2/dhcp_entreprise/dhcpd.conf:/dhcpd.conf
+    - $PWD/demo2/dhcp_entreprise/start_dhcp.sh:/start_dhcp.sh
+    - $PWD/demo2/dhcp_entreprise:/etc/frr:rw
+    command: "/bin/bash /start_dhcp.sh"
+
+  box_filiale2:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: box_filiale2
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    networks:
+      RI2_filiale: #eth0
+        ipv4_address: 192.168.4.194
+      RI2_VPN_entreprise:
+        ipv4_address: 120.1.26.2
+    volumes:
+    - $PWD/demo2/dhcp_filiale/dhcpd.conf:/dhcpd.conf
+    - $PWD/demo2/dhcp_filiale/start_dhcp.sh:/start_dhcp.sh
+    - $PWD/demo2/dhcp_filiale:/etc/frr:rw
+    command: "/bin/bash /start_dhcp.sh"
+    
+
+  #Les FAIs
+  Fai_acces_utilisateur2:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: Fai_utilisateur2
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    volumes: #cela indique où aller chercher des fichiers pour le container et où les mettre dans le container
+            - $PWD/demo2/Fai_utilisateur:/etc/frr:rw
+    command: "/bin/bash /etc/frr/start_frr.sh" #initialisation du shell une fois lancé 
+    networks:
+      RI2_prive:
+        ipv4_address: 120.1.18.128
+      Reseau_backbone2:
+        ipv4_address: 120.1.28.2
+  
+  Fai_acces_entreprise2:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: Fai_entreprise2 # c'est bien de renommer, sinon le nom par défaut est infâme
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    volumes: #cela indique où aller chercher des fichiers pour le container et où les mettre dans le container
+            - $PWD/demo2/Fai_entreprise:/etc/frr:rw
+    command: "/bin/bash /etc/frr/start_frr.sh" #initialisation du shell une fois lancé 
+    networks:
+      RI2_entreprise:
+        ipv4_address: 120.1.20.128
+      Reseau_backbone2:
+        ipv4_address: 120.1.28.3
+
+  Fai_acces_autre_AS2:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: Fai_autre_AS2 # c'est bien de renommer, sinon le nom par défaut est infâme
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    volumes: #cela indique où aller chercher des fichiers pour le container et où les mettre dans le container
+            - $PWD/demo2/Fai_autre_AS:/etc/frr:rw
+    command: "/bin/bash /etc/frr/start_frr.sh" #initialisation du shell une fois lancé 
+    networks:
+      RI2_autre_AS:
+        ipv4_address: 120.1.22.128
+      Reseau_backbone2:
+        ipv4_address: 120.1.28.4
+      Reseau_interco:
+        ipv4_address: 10.0.0.3
+
+  Fai_acces_VPN_perso2:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: FAI_VPN_perso2 # c'est bien de renommer, sinon le nom par défaut est infâme
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    volumes: #cela indique où aller chercher des fichiers pour le container et où les mettre dans le container
+            - $PWD/demo2/FAI_VPN_perso:/etc/frr:rw
+    command: "/bin/bash /etc/frr/start_frr.sh" #initialisation du shell une fois lancé 
+    networks:
+      RI2_VPN_perso:
+        ipv4_address: 120.1.24.128
+      Reseau_backbone2:
+        ipv4_address: 120.1.28.5
+
+  Fai_acces_VPN_entreprise2:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: FAI_VPN_entreprise2 # c'est bien de renommer, sinon le nom par défaut est infâme
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    volumes: #cela indique où aller chercher des fichiers pour le container et où les mettre dans le container
+            - $PWD/demo2/FAI_VPN_entreprise:/etc/frr:rw
+    command: "/bin/bash /etc/frr/start_frr.sh" #initialisation du shell une fois lancé 
+    networks:
+      RI2_VPN_entreprise:
+        ipv4_address: 120.1.26.128
+      Reseau_backbone2:
+        ipv4_address: 120.1.28.6
+
+  #Routeur central
+  Routeur_central2:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    container_name: routeur_central2 # c'est bien de renommer, sinon le nom par défaut est infâme
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    volumes: #cela indique où aller chercher des fichiers pour le container et où les mettre dans le container
+            - $PWD/demo2/routeur_central:/etc/frr:rw
+    command: "/bin/bash /etc/frr/start_frr.sh" #initialisation du shell une fois lancé 
+    networks:
+      Reseau_backbone2:
+        ipv4_address: 120.1.28.7
+
+  
+ #configs:
+  #dhcp_config:
+    #file: "./box_utilisateur/dhcpd.conf"
+
+#############LES MACHINES###############################
+########################################################
+
+
+  #Dans le reseau particulier
+  Ordinateur2:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    container_name: Ordinateur2
+    restart: always 
+    volumes:
+      - $PWD/demo2/ordi/start_ordi.sh:/start_ordi.sh
+    networks:
+      Reseau_particulier2:
+    command: /bin/bash start_ordi.sh
+  
+  Telephone2:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    container_name: Telephone2
+    restart: always 
+    volumes:
+      - $PWD/demo2/telephone/start_tel.sh:/start_tel.sh
+    networks:
+      Reseau_particulier2:
+    command: /bin/bash start_tel.sh
+
+  #Dans le réseau de l'entreprise
+  ordi_entreprise2:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    container_name: ordi_entreprise2
+    restart: always 
+    networks:
+      RI2_DMZ:
+        ipv4_address: 192.168.4.71
+    volumes:
+      - $PWD/demo2/ordi_entreprise/start_tel.sh:/start_tel.sh
+    command: sleep infinity
+  
+  ordi_filiale2:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    container_name: ordi_filiale2
+    networks:
+      RI2_filiale:
+        ipv4_address: 192.168.4.195
+    volumes:
+      - $PWD/demo2/ordi_filiale/start_tel.sh:/start_tel.sh
+    command: sleep infinity
+  
+  Serveur_WEB2:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    container_name: Serveur_WEB2
+    networks:
+      RI2_DMZ:
+    command: sleep infinity 
+
+  Serveur_FTP2:
+    image: alpine
+    container_name: Serveur_FTP2
+    restart: always 
+    networks:
+      RI2_DMZ:
+    command: sleep infinity
+
+  Serveur_DNS2:
+    cap_add:
+      - CAP_NET_RAW
+      - NET_ADMIN
+      - SYS_ADMIN
+    privileged: false
+    image: ksator/frr:1.0 # un linux avec notamment ospf
+    build: #permet de vérifier que les fichiers frr sont à jours sur le répertoire courant 
+      context: ./
+      dockerfile: Dockerfile
+    container_name: Serveur_DNS2
+    networks:
+      RI2_DMZ:
+    command: sleep infinity
+
+#########################################################################################################
+networks:
+
+    #############AS 1###############################
+########################################################
+ #Réseau privé
+  Reseau_interco: #Réseau entre la box et le particulier
+    ipam: #A chercher signification
+      driver: default #Sert de switch/bridge
+      config:
+        - subnet: "10.0.0.0/8" #subnet = sous réseau
+          gateway: 10.0.0.1
+
+  #Réseau privé
+  Reseau_particulier: #Réseau entre la box et le particulier
+    ipam: #A chercher signification
+      driver: default #Sert de switch/bridge
+      config:
+        - subnet: "192.168.1.0/24" #subnet = sous réseau
+
+  #Backbone
+  Reseau_backbone: #Réseau du routeur backbone
+    ipam:
+      driver: default
+      config:
+        - subnet: 120.0.28.0/23
+          gateway: 120.0.28.1
+
+  #Réseaux intermédiaires
+  RI_prive: 
+    ipam:
+      driver: default
+      config:
+        - subnet: 120.0.18.0/23
+          gateway: 120.0.18.1
+      
+  RI_entreprise: 
+    ipam:
+      driver: default
+      config:
+        - subnet: 120.0.20.0/23
+          gateway: 120.0.20.1
+
+  RI_autre_AS: 
+    ipam:
+      driver: default
+      config:
+        - subnet: 120.0.22.0/23
+          gateway: 120.0.22.1
+
+  RI_VPN_perso: 
+    ipam:
+      driver: default
+      config:
+        - subnet: 120.0.24.0/23
+          gateway: 120.0.24.1
+
+  RI_VPN_entreprise: 
+    ipam:
+      driver: default
+      config:
+        - subnet: 120.0.26.0/23
+          gateway: 120.0.26.1
+
+  RI_Sans_DMZ:
+    ipam:
+      driver: default
+      config:
+      - subnet: 192.168.2.128/26
+        gateway: 192.168.2.129
+
+  RI_DMZ:
+    ipam:
+      driver: default
+      config:
+      - subnet: 192.168.2.64/26
+        gateway: 192.168.2.65
+
+  RI_filiale:
+    ipam:
+      driver: default
+      config:
+      - subnet: 192.168.2.192/26
+        gateway: 192.168.2.193
+
+    #############AS 2###############################
+########################################################
+
+#Réseau privé
+  Reseau_particulier2: #Réseau entre la box et le particulier
+    ipam: #A chercher signification
+      driver: default #Sert de switch/bridge
+      config:
+        - subnet: "192.168.3.0/24" #subnet = sous réseau
+
+  #Backbone
+  Reseau_backbone2: #Réseau du routeur backbone
+    ipam:
+      driver: default
+      config:
+        - subnet: 120.1.28.0/23
+          gateway: 120.1.28.1
+
+  #Réseaux intermédiaires
+  RI2_prive: 
+    ipam:
+      driver: default
+      config:
+        - subnet: 120.1.18.0/23
+          gateway: 120.1.18.1
+      
+  RI2_entreprise: 
+    ipam:
+      driver: default
+      config:
+        - subnet: 120.1.20.0/23
+          gateway: 120.1.20.1
+
+  RI2_autre_AS: 
+    ipam:
+      driver: default
+      config:
+        - subnet: 120.1.22.0/23
+          gateway: 120.1.22.1
+
+  RI2_VPN_perso: 
+    ipam:
+      driver: default
+      config:
+        - subnet: 120.1.24.0/23
+          gateway: 120.1.24.1
+
+  RI2_VPN_entreprise: 
+    ipam:
+      driver: default
+      config:
+        - subnet: 120.1.26.0/23
+          gateway: 120.1.26.1
+
+  RI2_Sans_DMZ:
+    ipam:
+      driver: default
+      config:
+      - subnet: 192.168.4.128/26
+        gateway: 192.168.4.129
+
+  RI2_DMZ:
+    ipam:
+      driver: default
+      config:
+      - subnet: 192.168.4.64/26
+        gateway: 192.168.4.65
+
+  RI2_filiale:
+    ipam:
+      driver: default
+      config:
+      - subnet: 192.168.4.192/26
+        gateway: 192.168.4.193
+
+
+
+      
+
+
+      
